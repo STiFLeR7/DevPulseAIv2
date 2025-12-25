@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+supabase
+httpx
+pydantic
+pydantic-settings
+python-dotenv
+requests
+beautifulsoup4
+feedparser
+bytez
+loguru
+python-dateutil

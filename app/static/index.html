@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevPulseAI v2 - Intelligence Dashboard</title>
+    <!-- Google Fonts: Inter for a modern, clean look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for a sleek look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000E2C;
+            /* Primary background */
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #00BCD4;
+            /* Accent Cyan */
+            border-radius: 4px;
+            border: 2px solid #001A3D;
+            /* Card background */
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #00E4FF;
+            /* Lighter Cyan on hover */
+        }
+
+        /* Basic animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        .fade-in-animation {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .fade-out-animation {
+            animation: fadeOut 0.5s ease-in forwards;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-bg': '#000E2C',
+                        'card-bg': '#001A3D',
+                        'accent-cyan': '#00BCD4',
+                        'text-light': '#E0E0E0',
+                        'text-white': '#FFFFFF',
+                        'button-dark': '#010E29', /* A shade darker than primary-bg for button base */
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Inter', 'sans-serif'], /* Using Inter for headings too, but with heavier weights */
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+
+<body
+    class="bg-primary-bg text-text-light font-sans min-h-screen flex flex-col antialiased selection:bg-accent-cyan selection:text-primary-bg">
+
+    <!-- Dashboard Container -->
+    <div class="container mx-auto px-4 py-8 lg:py-12 flex-grow max-w-7xl">
+
+        <!-- Header Section -->
+        <header class="text-center mb-12 animate-fade-in-animation">
+            <h1
+                class="text-5xl lg:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-accent-cyan to-text-white drop-shadow-lg leading-tight tracking-tighter font-display">
+                DevPulse<span class="text-accent-cyan">AI</span> <span class="text-3xl lg:text-5xl opacity-70">v2</span>
+            </h1>
+            <p class="mt-4 text-xl lg:text-2xl text-text-light opacity-80 max-w-2xl mx-auto">
+                <span class="text-accent-cyan font-semibold">Real-time Intelligence</span> for Modern Development.
+            </p>
+        </header>
+
+        <!-- Main Control Panel -->
+        <section
+            class="bg-card-bg p-6 lg:p-10 rounded-2xl shadow-xl border border-accent-cyan/20 mb-12 animate-fade-in-animation">
+            <h2 class="text-3xl font-bold text-text-white mb-8 text-center border-b border-accent-cyan/30 pb-4">System
+                Controls</h2>
+
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-8">
+                <!-- Master Control Button -->
+                <div class="flex-grow w-full lg:w-auto">
+                    <button id="runDailyPipelineBtn" class="w-full relative px-8 py-5 text-2xl font-bold rounded-xl text-text-white border-2 border-accent-cyan
+                                   bg-gradient-to-br from-button-dark to-primary-bg
+                                   shadow-lg shadow-accent-cyan/20
+                                   hover:from-accent-cyan hover:to-button-dark hover:text-primary-bg
+                                   hover:shadow-accent-cyan/40
+                                   transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105
+                                   focus:outline-none focus:ring-4 focus:ring-accent-cyan/50 active:scale-95
+                                   group overflow-hidden">
+                        <span class="relative z-10">RUN DAILY PIPELINE</span>
+                        <div
+                            class="absolute inset-0 bg-gradient-to-r from-accent-cyan/0 via-accent-cyan/50 to-accent-cyan/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm">
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Individual Sync Controls -->
+                <div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto justify-center">
+                    <button
+                        class="sync-source-btn group relative px-6 py-3 text-lg font-medium rounded-lg text-accent-cyan border border-accent-cyan
+                                   hover:bg-accent-cyan hover:text-primary-bg hover:shadow-md hover:shadow-accent-cyan/30
+                                   transition-all duration-200 ease-in-out transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-accent-cyan/60 active:scale-95"
+                        data-source="github">
+                        <span class="relative z-10">Sync GitHub</span>
+                    </button>
+                    <button
+                        class="sync-source-btn group relative px-6 py-3 text-lg font-medium rounded-lg text-accent-cyan border border-accent-cyan
+                                   hover:bg-accent-cyan hover:text-primary-bg hover:shadow-md hover:shadow-accent-cyan/30
+                                   transition-all duration-200 ease-in-out transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-accent-cyan/60 active:scale-95"
+                        data-source="arxiv">
+                        <span class="relative z-10">Sync ArXiv</span>
+                    </button>
+                    <button
+                        class="sync-source-btn group relative px-6 py-3 text-lg font-medium rounded-lg text-accent-cyan border border-accent-cyan
+                                   hover:bg-accent-cyan hover:text-primary-bg hover:shadow-md hover:shadow-accent-cyan/30
+                                   transition-all duration-200 ease-in-out transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-accent-cyan/60 active:scale-95"
+                        data-source="medium">
+                        <span class="relative z-10">Sync Medium</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Feed Section -->
+        <section class="animate-fade-in-animation">
+            <h2 class="text-3xl font-bold text-text-white mb-8 text-center border-b border-accent-cyan/30 pb-4">Fetched
+                Intelligence</h2>
+            <div id="intelligenceCardsContainer"
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Intelligence cards will be rendered here by JavaScript -->
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Toast Notification Area -->
+    <div id="toastElement" class="fixed bottom-6 right-6 z-50 p-4 rounded-lg shadow-xl hidden
+                bg-gradient-to-br from-card-bg to-primary-bg border border-accent-cyan/40 text-text-light text-sm
+                transition-all duration-500 ease-in-out transform translate-y-full opacity-0">
+        <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-accent-cyan" fill="currentColor" viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 11-2 0v4a1 1 0 112 0V6zm-1 9a1 1 10-1-1v-1a1 1 0 101 1h1a1 1 0 00-1-1z"
+                    clip-rule="evenodd"></path>
+            </svg>
+            <span id="toastMessage">Notification message...</span>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin; // Dynamically uses current origin
+
+        // DOM Element References
+        const intelligenceCardsContainer = document.getElementById('intelligenceCardsContainer');
+        const runDailyPipelineBtn = document.getElementById('runDailyPipelineBtn');
+        const syncSourceBtns = document.querySelectorAll('.sync-source-btn');
+        const toastElement = document.getElementById('toastElement');
+        const toastMessageElement = document.getElementById('toastMessage');
+
+        let toastTimeout;
+
+        function showToast(message, duration = 3000) {
+            clearTimeout(toastTimeout); // Clear any existing timeout
+            toastMessageElement.textContent = message;
+            toastElement.classList.remove('hidden', 'opacity-0', 'translate-y-full', 'fade-out-animation');
+            toastElement.classList.add('flex', 'opacity-100', 'translate-y-0', 'fade-in-animation');
+
+            toastTimeout = setTimeout(() => {
+                toastElement.classList.remove('opacity-100', 'translate-y-0', 'fade-in-animation');
+                toastElement.classList.add('opacity-0', 'translate-y-full', 'fade-out-animation');
+                // Hide fully after animation
+                setTimeout(() => {
+                    toastElement.classList.add('hidden');
+                }, 500); // Duration of fade-out-animation
+            }, duration);
+        }
+
+        function renderIntelligence(data) {
+            intelligenceCardsContainer.innerHTML = ''; // Clear existing cards
+
+            if (!data || data.length === 0) {
+                intelligenceCardsContainer.innerHTML = `
+                    <div class="col-span-full text-center text-text-light opacity-70 p-8">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-accent-cyan/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-xl font-semibold">No intelligence data available yet.</p>
+                        <p class="text-lg mt-2">Run the pipeline or sync individual sources to fetch new data.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `bg-card-bg p-6 rounded-xl shadow-md border border-accent-cyan/20
+                                   hover:shadow-lg hover:shadow-accent-cyan/25 transition-all duration-200 ease-in-out transform hover:-translate-y-1`;
+                card.innerHTML = `
+                    <h3 class="text-xl font-bold text-text-white mb-2 leading-tight"><a href="${item.url}" target="_blank" class="hover:underline">${item.title}</a></h3>
+                    <p class="text-sm text-accent-cyan font-semibold mb-3">${item.source}</p>
+                    <p class="text-base text-text-light opacity-90 leading-relaxed">${item.output.summary_text || item.output.trend_name || 'No summary'}</p>
+                `;
+                intelligenceCardsContainer.appendChild(card);
+            });
+        }
+
+        async function fetchIntelligence() {
+            showToast('Fetching intelligence data...', 1500);
+            try {
+                const response = await fetch(`${API_BASE_URL}/intelligence`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                renderIntelligence(data);
+                showToast('Intelligence data refreshed!', 1500);
+            } catch (error) {
+                console.error('Error fetching intelligence data:', error);
+                renderIntelligence([]); // Clear cards on error
+                showToast(`Failed to fetch intelligence: ${error.message}`, 5000);
+            }
+        }
+
+        async function postToApi(endpoint, body = {}) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            const options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body),
+            };
+
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+                    throw new Error(`API error! status: ${response.status}, message: ${errorData.message || 'Server error'}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error(`Error during POST to ${endpoint}:`, error);
+                throw error;
+            }
+        }
+
+        runDailyPipelineBtn.addEventListener('click', async () => {
+            const originalText = runDailyPipelineBtn.textContent;
+            runDailyPipelineBtn.disabled = true;
+            runDailyPipelineBtn.textContent = 'Running Pipeline...';
+            runDailyPipelineBtn.classList.add('opacity-70', 'cursor-not-allowed');
+
+            try {
+                const sources = ['github', 'arxiv', 'medium'];
+                showToast('Starting daily pipeline...', 2000);
+
+                for (const source of sources) {
+                    showToast(`Ingesting data from ${source}...`, 1500);
+                    await postToApi('/ingest', { source });
+                    showToast(`Ingestion from ${source} complete.`, 1000);
+                }
+
+                showToast('Generating report...', 2000);
+                await postToApi('/report');
+                showToast('Report Generated & Emailed!', 1500);
+
+                await fetchIntelligence();
+                showToast('Daily pipeline finished successfully!', 3000);
+
+            } catch (error) {
+                showToast(`Daily pipeline failed: ${error.message}`, 5000);
+            } finally {
+                runDailyPipelineBtn.disabled = false;
+                runDailyPipelineBtn.textContent = originalText;
+                runDailyPipelineBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        });
+
+        syncSourceBtns.forEach(button => {
+            button.addEventListener('click', async () => {
+                const source = button.dataset.source;
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = `Syncing ${source}...`;
+                button.classList.add('opacity-70', 'cursor-not-allowed');
+
+                try {
+                    showToast(`Starting sync for ${source}...`, 1500);
+                    await postToApi('/ingest', { source });
+                    showToast(`Sync for ${source} complete!`, 1500);
+                    await fetchIntelligence(); // Refresh data after individual sync
+                } catch (error) {
+                    showToast(`Sync for ${source} failed: ${error.message}`, 5000);
+                } finally {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.classList.remove('opacity-70', 'cursor-not-allowed');
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', fetchIntelligence);
+    </script>
+</body>
+
+</html>

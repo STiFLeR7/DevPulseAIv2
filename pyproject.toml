@@ -1,0 +1,36 @@
+[project]
+name = "devpulse-ai-v2"
+version = "0.1.0"
+description = "Agent-driven intelligence platform for developer ecosystem signals."
+authors = [
+    {name = "DevPulseAI Team", email = "devpulse@example.com"},
+]
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "supabase>=2.3.0",
+    "httpx>=0.26.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",  # For scraping assumptions (Medium/Blogs)
+    "feedparser>=6.0.11",      # For RSS feeds
+    "bytez>=0.1.0",            # Assuming a pypi package or generic wrapper requests
+    "python-dateutil>=2.8.2",
+    "loguru>=0.7.2",           # Better logging
+]
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
