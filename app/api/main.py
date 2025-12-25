@@ -58,6 +58,34 @@ async def trigger_ingestion(req: TriggerRequest, background_tasks: BackgroundTas
     background_tasks.add_task(run_ingestion_task, req.source, req.run_agents)
     return {"status": "accepted", "message": f"Ingestion started for {req.source}"}
 
+@app.post("/daily-pulse")
+async def trigger_full_cycle(background_tasks: BackgroundTasks):
+    """
+    Triggers the FULL Daily Cycle:
+    1. Ingest from all sources.
+    2. Run Agents.
+    3. Generate & Send Email Report.
+    """
+    async def _run_cycle():
+        sources = ["github", "huggingface", "medium", "arxiv", "twitter"]
+        for source in sources:
+            try:
+                await run_ingestion_task(source, run_agents=True)
+            except Exception as e:
+                logger.error(f"Ingestion failed for {source}: {e}")
+        
+        # After ingestion complete, generate report
+        from app.reports.daily import DailyReportGenerator
+        generator = DailyReportGenerator()
+        try:
+            html = generator.generate_html_report()
+            mailer.send_daily_report(html)
+        except Exception as e:
+            logger.error(f"Report generation/sending failed: {e}")
+
+    background_tasks.add_task(_run_cycle)
+    return {"status": "started", "message": "Daily Pulse triggered (Ingest -> Process -> Email)"}
+
 @app.post("/report")
 async def trigger_report(background_tasks: BackgroundTasks):
     """
