@@ -76,7 +76,7 @@ Click the button below to deploy this exact stack to **Render** (Free Tier).
 
 ### Option 2: Automate Trigger
 Since the Free Tier "sleeps" after 15 mins of inactivity, use [Cron-Job.org](https://cron-job.org) to wake it up and send your report.
-*   **URL**: `https://your-app.onrender.com/report`
+*   **URL**: `https://devpulse-ai-v2.onrender.com/daily-pulse`
 *   **Method**: `POST`
 *   **Schedule**: `Daily @ 08:00 AM` (IST is UTC+5:30, so set UTC to 02:30).
 
@@ -86,7 +86,7 @@ Since the Free Tier "sleeps" after 15 mins of inactivity, use [Cron-Job.org](htt
 
 ```bash
 # Clone the repo
-git clone https://github.com/YourUsername/DevPulseAIv2.git
+git clone https://github.com/STiFLeR7/DevPulseAIv2.git
 
 # Install dependencies
 pip install -r requirements.txt
