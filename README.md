@@ -8,6 +8,8 @@
 
 ---
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
 ## ⚡ Overview
 **DevPulseAI v2** is a cloud-native, agentic intelligence platform designed to keep developers ahead of the curve. It autonomously aggregates signals from specific high-value sources, processes them through a multi-agent LLM pipeline (**Google Gemini 1.5 Flash**), and delivers a curated, color-coded daily digest directly to your inbox.
 
@@ -47,11 +49,11 @@ A highly styled, responsive HTML email that groups intelligence by category. No 
 
 | Category | Indicator | Description |
 | :--- | :--- | :--- |
-| **New Trends** | `assets/new-trends.png` | Aggregated patterns (e.g., "Rise of SLMs"). |
-| **New Repos** | `assets/new-repos.png` | GitHub stars of the day (**Grey**). |
-| **Updates** | `assets/updates.png` | New Hugging Face models (**Yellow**). |
-| **Insights** | `assets/insights.png` | Deep dive ArXiv summaries (**Green**). |
-| **Summary** | `assets/summary.png` | Executive TL;DR of the day. |
+| **New Trends** | <img src="assets/new-trends.png" width="100"/> | Aggregated patterns (e.g., "Rise of SLMs"). |
+| **New Repos** | <img src="assets/new-repos.png" width="100"/> | GitHub stars of the day (**Grey**). |
+| **Updates** | <img src="assets/updates.png" width="100"/> | New Hugging Face models (**Yellow**). |
+| **Insights** | <img src="assets/insights.png" width="100"/> | Deep dive ArXiv summaries (**Green**). |
+| **Summary** | <img src="assets/summary.png" width="100"/> | Executive TL;DR of the day. |
 
 ### 3. Agentic Pipeline
 Every signal passes through three specialized agents:
@@ -63,29 +65,22 @@ Every signal passes through three specialized agents:
 
 ## 🚀 Deployment (100% Free Stack)
 
-This project is optimized for **Render (Free Tier)** + **Cron-Job.org**.
+### Option 1: One-Click Deploy (Recommended)
+Click the button below to deploy this exact stack to **Render** (Free Tier).
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
-### Step 1: Deploy to Render
-1.  Fork this repo.
-2.  Create a **New Web Service** on [Render](https://render.com).
-3.  Connect your repo.
-4.  **Runtime**: `Docker`.
-5.  **Environment Variables**:
-    ```bash
-    SUPABASE_URL=...
-    SUPABASE_KEY=...
-    GEMINI_API_KEY=...
-    SMTP_USER=...
-    SMTP_PASSWORD=...
-    ```
+1.  Click the button.
+2.  Connect your GitHub account.
+3.  Fill in the **Environment Variables** (Supabase, Gemini, SMTP) when prompted.
+4.  That's it!
 
-### Step 2: Automate
-Since Free Tier sleeps, use [Cron-Job.org](https://cron-job.org) to wake it up.
+### Option 2: Automate Trigger
+Since the Free Tier "sleeps" after 15 mins of inactivity, use [Cron-Job.org](https://cron-job.org) to wake it up and send your report.
 *   **URL**: `https://your-app.onrender.com/report`
 *   **Method**: `POST`
-*   **Schedule**: `Daily @ 08:00 AM`
+*   **Schedule**: `Daily @ 08:00 AM` (IST is UTC+5:30, so set UTC to 02:30).
 
----
+**Note**: GitHub Actions are **NOT** required. Render automatically redeploys whenever you push changes to the repository!
 
 ## 🛠 Local Development
 
