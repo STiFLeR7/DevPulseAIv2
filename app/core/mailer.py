@@ -17,29 +17,32 @@ class MailerService:
             logger.warning("SMTP credentials not set. Skipping email dispatch.")
             return False
 
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "☀️ DevPulseAI Daily Intelligence"
+        msg["From"] = self.smtp_user
+        msg["To"] = self.admin_email
+        part = MIMEText(html_content, "html")
+        msg.attach(part)
+
+        # Strategy 1: Try SSL (Port 465) - Preferred for Gmail
         try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = "☀️ DevPulseAI Daily Intelligence"
-            msg["From"] = self.smtp_user
-            msg["To"] = self.admin_email
-
-            part = MIMEText(html_content, "html")
-            msg.attach(part)
-
-            # Try SSL (465) by default or if specified
-            if self.smtp_port == 465:
-                with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port) as server:
-                    server.login(self.smtp_user, self.smtp_password)
-                    server.sendmail(self.smtp_user, self.admin_email, msg.as_string())
-            else:
-                # Fallback/Default to TLS (587)
-                with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                    server.starttls()
-                    server.login(self.smtp_user, self.smtp_password)
-                    server.sendmail(self.smtp_user, self.admin_email, msg.as_string())
-            
-            logger.info(f"Daily report sent to {self.admin_email}")
+            logger.info("Attempting using SMTP_SSL (Port 465)...")
+            with smtplib.SMTP_SSL(self.smtp_host, 465, timeout=10) as server:
+                server.login(self.smtp_user, self.smtp_password)
+                server.sendmail(self.smtp_user, self.admin_email, msg.as_string())
+            logger.info(f"Email sent successfully via Port 465.")
             return True
         except Exception as e:
-            logger.error(f"Failed to send email: {e}")
+            logger.warning(f"Port 465 failed ({e}). Retrying with TLS (Port 587)...")
+
+        # Strategy 2: Fallback to TLS (Port 587)
+        try:
+            with smtplib.SMTP(self.smtp_host, 587, timeout=10) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+                server.sendmail(self.smtp_user, self.admin_email, msg.as_string())
+            logger.info(f"Email sent successfully via Port 587.")
+            return True
+        except Exception as e:
+            logger.error(f"All SMTP attempts failed. Last error: {e}")
             return False
