@@ -26,10 +26,17 @@ class MailerService:
             part = MIMEText(html_content, "html")
             msg.attach(part)
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.sendmail(self.smtp_user, self.admin_email, msg.as_string())
+            # Try SSL (465) by default or if specified
+            if self.smtp_port == 465:
+                with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port) as server:
+                    server.login(self.smtp_user, self.smtp_password)
+                    server.sendmail(self.smtp_user, self.admin_email, msg.as_string())
+            else:
+                # Fallback/Default to TLS (587)
+                with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                    server.starttls()
+                    server.login(self.smtp_user, self.smtp_password)
+                    server.sendmail(self.smtp_user, self.admin_email, msg.as_string())
             
             logger.info(f"Daily report sent to {self.admin_email}")
             return True
