@@ -46,6 +46,11 @@ app.mount("/dashboard", StaticFiles(directory="app/static", html=True), name="st
 async def read_root():
     return FileResponse('app/static/index.html')
 
+@app.get("/ping")
+async def ping():
+    """Ultra-lightweight health check for cron wake-up."""
+    return {"status": "ok"}
+
 class TriggerRequest(BaseModel):
     source: str
     run_agents: bool = True
