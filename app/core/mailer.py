@@ -30,7 +30,7 @@ class MailerService:
     def _send_via_resend(self, html_content: str) -> bool:
         """Send via Resend HTTP API (Port 443 - not blocked)."""
         try:
-            logger.info("Sending email via Resend API...")
+            logger.info(f"Sending email via Resend API... FROM={self.from_email} TO={self.admin_email}")
             response = requests.post(
                 "https://api.resend.com/emails",
                 headers={
