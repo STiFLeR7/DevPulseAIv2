@@ -12,3 +12,4 @@ bytez
 loguru
 python-dateutil
 google-generativeai
+resend
