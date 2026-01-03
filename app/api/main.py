@@ -40,11 +40,17 @@ trend_agent = TrendDetectionAgent(inference_client)
 mailer = MailerService()
 
 # Serve UI
-app.mount("/dashboard", StaticFiles(directory="app/static", html=True), name="static")
+# Serve UI
+# Serve React UI
+app.mount("/assets", StaticFiles(directory="ui/dist/assets", html=True), name="assets")
+
+@app.get("/ui")
+async def read_ui():
+    return FileResponse('ui/dist/index.html')
 
 @app.get("/")
 async def read_root():
-    return FileResponse('app/static/index.html')
+    return FileResponse('ui/dist/index.html')
 
 @app.get("/ping")
 async def ping():
