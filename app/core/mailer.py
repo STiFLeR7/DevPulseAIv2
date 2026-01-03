@@ -9,9 +9,9 @@ from app.core.logger import logger
 class MailerService:
     def __init__(self):
         # Primary: Resend API (HTTPS - works on Render)
-        self.resend_api_key = os.getenv("RESEND_API_KEY", "")
-        self.from_email = os.getenv("FROM_EMAIL", "onboarding@resend.dev")
-        self.admin_email = os.getenv("ADMIN_EMAIL", "")
+        self.resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
+        self.from_email = os.getenv("FROM_EMAIL", "onboarding@resend.dev").strip()
+        self.admin_email = os.getenv("ADMIN_EMAIL", "").strip()
         
         # Legacy SMTP fallback
         self.smtp_user = os.getenv("SMTP_USER", "")
