@@ -9,6 +9,7 @@ from app.adapters.huggingface import HuggingFaceAdapter
 from app.adapters.medium import MediumAdapter
 from app.adapters.arxiv import ArXivAdapter
 from app.adapters.twitter import TwitterAdapter
+from app.adapters.hackernews import HackerNewsAdapter
 from app.persistence.client import db
 from app.inference.gemini_client import GeminiClient
 from app.agents.implementations import SummarizationAgent, RelevanceAgent, RiskAgent
@@ -78,7 +79,7 @@ async def trigger_full_cycle(background_tasks: BackgroundTasks):
     3. Generate & Send Email Report.
     """
     async def _run_cycle():
-        sources = ["github", "huggingface", "medium", "arxiv", "twitter"]
+        sources = ["github", "huggingface", "medium", "arxiv", "twitter", "hackernews"]
         for source in sources:
             try:
                 await run_ingestion_task(source, run_agents=True)
@@ -177,6 +178,9 @@ async def run_ingestion_task(source: str, run_agents: bool):
     elif source == "twitter":
         adapter = TwitterAdapter()
         signals = await adapter.fetch_tweets()
+    elif source == "hackernews":
+        adapter = HackerNewsAdapter()
+        signals = await adapter.fetch_stories()
     else:
         logger.error(f"Unknown source: {source}")
         return
