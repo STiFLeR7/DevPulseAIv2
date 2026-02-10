@@ -79,5 +79,59 @@ class SupabaseManager:
             # Fallback to stdout if logging fails
             print(f"FAILED TO LOG TO DB: {e}")
 
+    def log_trace(self, run_id: str, agent_name: str, step_name: str, input_state: dict, output_state: dict, tool_calls: list = None, model_name: str = None, status: str = "completed", error_message: str = None):
+        """
+        Logs an agent execution step for observability.
+        """
+        data = {
+            "run_id": run_id,
+            "agent_name": agent_name,
+            "step_name": step_name,
+            "input_state": input_state,
+            "output_state": output_state,
+            "tool_calls": tool_calls or [],
+            "model_name": model_name,
+            "status": status,
+            "error_message": error_message
+        }
+        try:
+            return self.get_client().table("agent_traces").insert(data).execute()
+        except Exception as e:
+            # Silently fail - caller will handle if needed
+            raise
+
+    def save_feedback(self, signal_id: str, vote_type: str, feedback_text: str = None, user_id: str = None):
+        """
+        Records user feedback for a signal.
+        """
+        data = {
+            "signal_id": signal_id,
+            "vote_type": vote_type,
+            "feedback_text": feedback_text,
+            "user_id": user_id
+        }
+        try:
+            return self.get_client().table("user_feedback").insert(data).execute()
+        except Exception as e:
+            print(f"FAILED TO SAVE FEEDBACK: {e}")
+
+    def upsert_project_context(self, project_name: str, source_type: str, content_hash: str, dependencies: dict, tech_tags: list):
+        """
+        Stores the parsed project context (dependencies).
+        """
+        data = {
+            "project_name": project_name,
+            "source_type": source_type,
+            "content_hash": content_hash,
+            "dependencies": dependencies,
+            "tech_tags": tech_tags,
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        # Assuming uniqueness on (project_name, source_type) via database constraint
+        try:
+            return self.get_client().table("project_context").upsert(data, on_conflict="project_name, source_type").execute()
+        except Exception as e:
+            print(f"FAILED TO UPSERT CONTEXT: {e}")
+
 # Global instance accessor
 db = SupabaseManager()

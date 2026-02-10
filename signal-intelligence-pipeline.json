@@ -1,0 +1,593 @@
+{
+  "name": "Signal Intelligence Ingestion Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-cron",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ],
+      "notes": "Triggers the pipeline daily at 8:00 AM IST"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-pulse",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        500
+      ],
+      "webhookId": "devpulse-trigger",
+      "notes": "Manual trigger via POST request"
+    },
+    {
+      "parameters": {},
+      "id": "merge-triggers",
+      "name": "Merge Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        200,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/search/repositories?q=stars:>1000+pushed:>2024-01-01&sort=stars&order=desc&per_page=10",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi"
+      },
+      "id": "github-adapter",
+      "name": "GitHub Trending Repos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        100
+      ],
+      "notes": "Fetches trending GitHub repositories"
+    },
+    {
+      "parameters": {
+        "url": "https://huggingface.co/api/models?sort=downloads&direction=-1&limit=10",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "huggingface-adapter",
+      "name": "HuggingFace Models",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        250
+      ],
+      "notes": "Fetches latest HuggingFace models"
+    },
+    {
+      "parameters": {
+        "url": "http://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=10"
+      },
+      "id": "arxiv-adapter",
+      "name": "ArXiv Papers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        400
+      ],
+      "notes": "Fetches latest AI/ML research papers"
+    },
+    {
+      "parameters": {
+        "url": "https://hacker-news.firebaseio.com/v0/topstories.json?print=pretty&limitToFirst=10&orderBy=\"$key\""
+      },
+      "id": "hackernews-adapter",
+      "name": "HackerNews Top Stories",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        550
+      ],
+      "notes": "Fetches top HackerNews stories"
+    },
+    {
+      "parameters": {
+        "url": "https://medium.com/feed/@netflixtechblog",
+        "options": {}
+      },
+      "id": "medium-adapter",
+      "name": "Medium Tech Blogs",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        400,
+        700
+      ],
+      "notes": "Fetches engineering blogs from Medium"
+    },
+    {
+      "parameters": {
+        "mode": "multiplex"
+      },
+      "id": "merge-signals",
+      "name": "Aggregate Signals",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        650,
+        400
+      ],
+      "notes": "Combines all signal sources into unified stream"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Signal Normalizer - Converts diverse inputs to unified schema\nconst signals = [];\n\nfor (const item of $input.all()) {\n  const data = item.json;\n  \n  let normalized = {\n    id: data.id || data._id || crypto.randomUUID(),\n    source: 'unknown',\n    title: '',\n    description: '',\n    url: '',\n    metadata: {},\n    ingested_at: new Date().toISOString(),\n    category: 'general'\n  };\n  \n  // GitHub normalization\n  if (data.full_name && data.stargazers_count !== undefined) {\n    normalized.source = 'github';\n    normalized.title = data.full_name;\n    normalized.description = data.description || '';\n    normalized.url = data.html_url;\n    normalized.category = 'new_repos';\n    normalized.metadata = {\n      stars: data.stargazers_count,\n      language: data.language,\n      topics: data.topics || []\n    };\n  }\n  \n  // HuggingFace normalization\n  else if (data.modelId || data.pipeline_tag) {\n    normalized.source = 'huggingface';\n    normalized.title = data.modelId || data.id;\n    normalized.description = data.pipeline_tag || 'Model';\n    normalized.url = `https://huggingface.co/${data.modelId || data.id}`;\n    normalized.category = 'updates';\n    normalized.metadata = {\n      downloads: data.downloads,\n      likes: data.likes,\n      pipeline: data.pipeline_tag\n    };\n  }\n  \n  // ArXiv normalization\n  else if (data.title && data.summary) {\n    normalized.source = 'arxiv';\n    normalized.title = data.title;\n    normalized.description = data.summary;\n    normalized.url = data.id || data.link;\n    normalized.category = 'insights';\n    normalized.metadata = {\n      authors: data.author,\n      categories: data.category\n    };\n  }\n  \n  // HackerNews normalization\n  else if (data.by && data.score !== undefined) {\n    normalized.source = 'hackernews';\n    normalized.title = data.title;\n    normalized.description = data.text || '';\n    normalized.url = data.url || `https://news.ycombinator.com/item?id=${data.id}`;\n    normalized.category = 'new_trends';\n    normalized.metadata = {\n      score: data.score,\n      author: data.by,\n      comments: data.descendants\n    };\n  }\n  \n  // Medium/RSS normalization\n  else if (data.contentSnippet || data.content) {\n    normalized.source = 'medium';\n    normalized.title = data.title;\n    normalized.description = data.contentSnippet || data.content;\n    normalized.url = data.link;\n    normalized.category = 'insights';\n    normalized.metadata = {\n      author: data.creator,\n      pubDate: data.pubDate\n    };\n  }\n  \n  signals.push({ json: normalized });\n}\n\nreturn signals;"
+      },
+      "id": "signal-normalizer",
+      "name": "Signal Normalizer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        400
+      ],
+      "notes": "Transforms all data sources into unified signal schema"
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gemini-1.5-flash",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a Senior Tech Analyst. Summarize the following content in 2-3 sentences, focusing on: 1) What it is, 2) Why it matters to developers, 3) Key technical highlights. Be concise and technical."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.title }}\n\n{{ $json.description }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxOutputTokens": 150
+        }
+      },
+      "id": "summarization-agent",
+      "name": "Summarization Agent",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        200
+      ],
+      "notes": "LLM agent that condenses content into digestible summaries"
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gemini-1.5-flash",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a Relevance Scoring Agent for developers. Score the following content from 0-100 based on its relevance to backend engineers, ML engineers, and full-stack developers. Return ONLY a JSON object: {\"score\": <number>, \"reason\": \"<1 sentence>\"}"
+            },
+            {
+              "role": "user",
+              "content": "Title: {{ $json.title }}\nSource: {{ $json.source }}\nDescription: {{ $json.description }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxOutputTokens": 100
+        }
+      },
+      "id": "relevance-agent",
+      "name": "Relevance Agent",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        400
+      ],
+      "notes": "Scores content 0-100 based on developer profile relevance"
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gemini-1.5-flash",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a Risk Assessment Agent. Analyze the following for: breaking changes, security vulnerabilities, or deprecations. Return ONLY a JSON object: {\"risk_level\": \"HIGH|MEDIUM|LOW|NONE\", \"flags\": [\"<list of concerns>\"]}"
+            },
+            {
+              "role": "user",
+              "content": "Title: {{ $json.title }}\nSource: {{ $json.source }}\nDescription: {{ $json.description }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxOutputTokens": 150
+        }
+      },
+      "id": "risk-agent",
+      "name": "Risk Agent",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        600
+      ],
+      "notes": "Flags breaking changes, security vulnerabilities, deprecations"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge agent outputs into enriched signal\nconst enrichedSignals = [];\n\nfor (const item of $input.all()) {\n  const signal = item.json;\n  \n  enrichedSignals.push({\n    json: {\n      ...signal,\n      enrichment: {\n        summary: signal.summary || null,\n        relevance_score: signal.relevance_score || 50,\n        relevance_reason: signal.relevance_reason || '',\n        risk_level: signal.risk_level || 'NONE',\n        risk_flags: signal.risk_flags || [],\n        processed_at: new Date().toISOString()\n      }\n    }\n  });\n}\n\n// Sort by relevance score descending\nenrichedSignals.sort((a, b) => \n  (b.json.enrichment.relevance_score || 0) - (a.json.enrichment.relevance_score || 0)\n);\n\nreturn enrichedSignals;"
+      },
+      "id": "enrichment-merger",
+      "name": "Enrichment Merger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1350,
+        400
+      ],
+      "notes": "Combines all agent outputs into final enriched signal"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.enrichment.relevance_score }}",
+              "operation": "largerEqual",
+              "value2": 40
+            }
+          ]
+        }
+      },
+      "id": "relevance-filter",
+      "name": "Relevance Filter",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1550,
+        400
+      ],
+      "notes": "Filters out low-relevance signals (score < 40)"
+    },
+    {
+      "parameters": {
+        "authentication": "supabaseApi",
+        "tableId": "signals",
+        "fieldsToSend": "allInputData"
+      },
+      "id": "supabase-store",
+      "name": "Supabase Store",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1750,
+        300
+      ],
+      "notes": "Persists enriched signals to Supabase database"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Group signals by category for report generation\nconst signals = $input.all().map(item => item.json);\n\nconst grouped = {\n  new_trends: [],\n  new_repos: [],\n  updates: [],\n  insights: [],\n  summary: []\n};\n\nconst categoryColors = {\n  new_trends: '#FF6B6B',\n  new_repos: '#6C757D',\n  updates: '#FFC107',\n  insights: '#28A745',\n  summary: '#17A2B8'\n};\n\nfor (const signal of signals) {\n  const cat = signal.category || 'summary';\n  if (grouped[cat]) {\n    grouped[cat].push({\n      ...signal,\n      display_color: categoryColors[cat]\n    });\n  }\n}\n\n// Generate executive summary\nconst topSignals = signals\n  .filter(s => s.enrichment.relevance_score >= 70)\n  .slice(0, 3);\n\nconst executiveSummary = topSignals.length > 0 \n  ? `Today's top ${topSignals.length} signals: ${topSignals.map(s => s.title).join(', ')}`\n  : 'No high-priority signals detected today.';\n\nreturn [{\n  json: {\n    generated_at: new Date().toISOString(),\n    total_signals: signals.length,\n    grouped_signals: grouped,\n    executive_summary: executiveSummary,\n    category_counts: {\n      new_trends: grouped.new_trends.length,\n      new_repos: grouped.new_repos.length,\n      updates: grouped.updates.length,\n      insights: grouped.insights.length\n    }\n  }\n}];"
+      },
+      "id": "report-generator",
+      "name": "Report Generator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1750,
+        500
+      ],
+      "notes": "Groups signals by category and generates daily digest structure"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM }}",
+        "toEmail": "={{ $env.ADMIN_EMAIL }}",
+        "subject": "🚀 DevPulse Daily Intelligence | {{ $now.format('yyyy-MM-dd') }}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; }\n    .header { background: linear-gradient(135deg, #238636, #1f6feb); padding: 20px; border-radius: 8px; text-align: center; }\n    .section { background: #161b22; border-radius: 8px; padding: 15px; margin: 15px 0; border-left: 4px solid; }\n    .new-trends { border-color: #FF6B6B; }\n    .new-repos { border-color: #6C757D; }\n    .updates { border-color: #FFC107; }\n    .insights { border-color: #28A745; }\n    .signal-item { padding: 10px 0; border-bottom: 1px solid #30363d; }\n    .signal-title { color: #58a6ff; font-weight: 600; }\n    .signal-source { color: #8b949e; font-size: 12px; }\n    .score-badge { background: #238636; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; }\n    .risk-high { background: #da3633; }\n    .risk-medium { background: #d29922; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>🧠 DevPulse Daily Intelligence</h1>\n    <p>{{ $json.executive_summary }}</p>\n    <small>Generated: {{ $json.generated_at }}</small>\n  </div>\n  \n  <div class=\"section new-trends\">\n    <h2>🔥 New Trends ({{ $json.category_counts.new_trends }})</h2>\n    <p>Emerging patterns and discussions in the tech community.</p>\n  </div>\n  \n  <div class=\"section new-repos\">\n    <h2>⭐ New Repos ({{ $json.category_counts.new_repos }})</h2>\n    <p>GitHub stars of the day.</p>\n  </div>\n  \n  <div class=\"section updates\">\n    <h2>🤖 Model Updates ({{ $json.category_counts.updates }})</h2>\n    <p>Latest from HuggingFace and ML ecosystem.</p>\n  </div>\n  \n  <div class=\"section insights\">\n    <h2>📚 Research Insights ({{ $json.category_counts.insights }})</h2>\n    <p>Deep dives from ArXiv and engineering blogs.</p>\n  </div>\n  \n  <div style=\"text-align: center; margin-top: 30px; color: #6e7681;\">\n    <p>Powered by DevPulseAI v2 | Signal Intelligence Pipeline</p>\n  </div>\n</body>\n</html>"
+      },
+      "id": "email-sender",
+      "name": "Email Sender",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2000,
+        400
+      ],
+      "notes": "Sends the styled daily digest email to configured recipients"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'success', signals_processed: $json.total_signals, generated_at: $json.generated_at }) }}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        600
+      ],
+      "notes": "Returns success response for webhook triggers"
+    }
+  ],
+  "connections": {
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Triggers": {
+      "main": [
+        [
+          {
+            "node": "GitHub Trending Repos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HuggingFace Models",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ArXiv Papers",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HackerNews Top Stories",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Medium Tech Blogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub Trending Repos": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HuggingFace Models": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Signals",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "ArXiv Papers": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Signals",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "HackerNews Top Stories": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Signals",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Medium Tech Blogs": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Signals",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Aggregate Signals": {
+      "main": [
+        [
+          {
+            "node": "Signal Normalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signal Normalizer": {
+      "main": [
+        [
+          {
+            "node": "Summarization Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Relevance Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Risk Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization Agent": {
+      "main": [
+        [
+          {
+            "node": "Enrichment Merger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relevance Agent": {
+      "main": [
+        [
+          {
+            "node": "Enrichment Merger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risk Agent": {
+      "main": [
+        [
+          {
+            "node": "Enrichment Merger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichment Merger": {
+      "main": [
+        [
+          {
+            "node": "Relevance Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relevance Filter": {
+      "main": [
+        [
+          {
+            "node": "Supabase Store",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Report Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Generator": {
+      "main": [
+        [
+          {
+            "node": "Email Sender",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "signal-intelligence"
+    },
+    {
+      "name": "automation"
+    },
+    {
+      "name": "developer-tools"
+    },
+    {
+      "name": "ai-agents"
+    }
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "devpulse-v2"
+  },
+  "pinData": {}
+}
