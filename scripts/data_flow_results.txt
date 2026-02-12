@@ -1,0 +1,75 @@
+======================================================================
+  DevPulseAI v3 -- FULL Integration Test
+  Tests: GitHub API + ArXiv API + Supabase + Pinecone
+======================================================================
+
+--- BEFORE ---
+  conversations: 18
+  audit_logs: 8
+  raw_signals: 352
+  processed_intelligence: 1033
+  agent_traces: 45
+
+  QUERY: Analyze the repository pallets/flask
+[Intent] Matched by keyword: repo_analysis
+[ConversationManager] Intent: repo_analysis
+  [REAL] (3.9s) ## ≡ƒöì Repository Analysis: [pallets/flask](https://github.com/pallets/flask)  **The Python micro framework for building web applications.**  | Metric |...
+
+  QUERY: Find papers on transformer attention mechanism
+[Intent] Matched by keyword: paper_search
+[ConversationManager] Intent: paper_search
+  [REAL] (4.6s) ## ≡ƒôä ArXiv Papers: "Find papers on transformer attention mechanism"  Found **5** relevant papers:  ### 1. Transformer-based Personalized Attention Mec...
+
+  QUERY: What is retrieval augmented generation?
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1770882891.091924   25352 alts_credentials.cc:93] ALTS creds ignored. Not running on GCP and untrusted ALTS is not enabled.
+[Gemini] Rate limited (attempt 1/3), retrying in 3.0s...
+[Gemini] Rate limited (attempt 2/3), retrying in 6.0s...
+[ConversationManager] Intent: general_qa
+[Gemini] Rate limited (attempt 1/3), retrying in 3.0s...
+[Gemini] Rate limited (attempt 2/3), retrying in 6.0s...
+  [REAL] (22.1s) ΓÅ│ **Rate limit reached** ΓÇö Gemini API is temporarily throttled.  Please wait ~15 seconds and try again, or try queries that use local workers instead:...
+
+
+--- AFTER ---
+  conversations: 24 (+6)
+  audit_logs: 13 (+5)
+  raw_signals: 358 (+6)
+  processed_intelligence: 1039 (+6)
+  agent_traces: 49 (+4)
+
+--- LATEST DATA IN SUPABASE ---
+
+  [conversations] (most recent 2 rows):
+    -> {'id': '559782e8-ed74-4681-ac1a-9f9a708fb6d2', 'conversation_id': 'bf161122-37d6-44f6-9b75-f9b672b704d1', 'role': 'assistant', 'content': 'ΓÅ│ **Rate limit reached** ΓÇö Gemini API is temporarily throttle...
+    -> {'id': 'a63b44c5-69e4-49a0-aff3-b7999a1f09e6', 'conversation_id': 'bf161122-37d6-44f6-9b75-f9b672b704d1', 'role': 'user', 'content': 'What is retrieval augmented generation?', 'intent': 'general_qa', ...
+
+  [audit_logs] (most recent 2 rows):
+    Error: {'message': 'column audit_logs.created_at does not exist', 'code': '42703', 'hint': None, 'details': None}
+
+  [raw_signals] (most recent 2 rows):
+    -> {'id': '7a2e12f7-c923-4d38-a99c-78dadd1d1ec0', 'created_at': '2026-02-12T07:54:47.607541+00:00', 'source': 'arxiv', 'external_id': 'http://arxiv.org/abs/2503.02130v2', 'payload': {'title': 'Forgetting...
+    -> {'id': 'cfaa893f-ebf7-4e43-a201-8ca7c8eff7d2', 'created_at': '2026-02-12T07:54:47.047685+00:00', 'source': 'arxiv', 'external_id': 'http://arxiv.org/abs/2402.04563v1', 'payload': {'title': 'Attention ...
+
+  [processed_intelligence] (most recent 2 rows):
+    -> {'id': '2539e567-3007-4bcc-bd48-8ac4cfd514ed', 'signal_id': '7a2e12f7-c923-4d38-a99c-78dadd1d1ec0', 'created_at': '2026-02-12T07:54:47.875897+00:00', 'agent_name': 'PaperAnalyst', 'agent_version': '3....
+    -> {'id': '21e7d1de-64c8-4766-a917-2731ed2cb4e8', 'signal_id': 'cfaa893f-ebf7-4e43-a201-8ca7c8eff7d2', 'created_at': '2026-02-12T07:54:47.337728+00:00', 'agent_name': 'PaperAnalyst', 'agent_version': '3....
+
+  [agent_traces] (most recent 2 rows):
+    -> {'id': '76e5947b-6ea2-40f3-9bcc-01179a1cd772', 'run_id': 'df514ae1-4237-4c03-b85f-daa2a0983eff', 'agent_name': 'PaperAnalyst', 'step_name': 'paper_search_complete', 'input_state': {'query': 'Find pape...
+    -> {'id': '26bae8cc-9559-45c5-998e-6c55bb5f55e3', 'run_id': 'df514ae1-4237-4c03-b85f-daa2a0983eff', 'agent_name': 'PaperAnalyst', 'step_name': 'paper_search_start', 'input_state': {'query': 'Find papers ...
+
+======================================================================
+  RESULTS SUMMARY
+======================================================================
+  [PASS] Conversations persisted
+  [PASS] Audit logs persisted
+  [PASS] Raw signals persisted
+  [PASS] Intelligence persisted
+  [PASS] Agent traces persisted
+  [PASS] GitHub returns REAL data
+  [PASS] ArXiv returns REAL data
+  [PASS] Gemini returns REAL data
+
+  >>> ALL CHECKS PASSED! <<<
+
