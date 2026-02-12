@@ -12,17 +12,19 @@ class PaperAnalyst(Worker):
         Analyze papers based on a research query.
         Expected task structure:
         {
-            "query": "transformer architecture improvements",
-            "max_papers": 5,
-            "focus": ["methodology", "results", "impact"]
+            "user_message": "Find papers on RAG",
+            "query": "retrieval augmented generation" (optional)
         }
         """
-        query = task.get("query")
-        max_papers = task.get("max_papers", 5)
-        focus = task.get("focus", ["summary"])
+        user_message = task.get("user_message", "")
+        query = task.get("query", user_message)  # Use message as query if not provided
+        max_papers = task.get("max_papers", 3)
         
         if not query:
-            return {"status": "error", "message": "query is required"}
+            return {
+                "status": "error",
+                "summary": "Please provide a research topic or query."
+            }
         
         self.log_trace(
             step_name="paper_analysis_start",
@@ -30,65 +32,55 @@ class PaperAnalyst(Worker):
             output_state={}
         )
         
-        # 1. Search for relevant papers
-        papers = await self._search_papers(query, max_papers)
-        
-        # 2. Analyze each paper
-        analyses = []
-        for paper in papers:
-            analysis = await self._analyze_paper(paper, focus)
-            analyses.append(analysis)
-        
-        # 3. Synthesize insights
-        synthesis = await self._synthesize_insights(analyses)
-        
-        self.log_trace(
-            step_name="paper_analysis_complete",
-            input_state={"query": query},
-            output_state={"papers_analyzed": len(analyses), "synthesis": synthesis}
-        )
-        
-        return {
-            "status": "success",
-            "papers": analyses,
-            "synthesis": synthesis
-        }
+        try:
+            # 1. Search for relevant papers
+            papers = await self._search_papers(query, max_papers)
+            
+            # 2. Generate summary
+            summary = self._generate_summary(query, papers)
+            
+            self.log_trace(
+                step_name="paper_analysis_complete",
+                input_state={"query": query},
+                output_state={"papers_found": len(papers), "summary": summary}
+            )
+            
+            return {
+                "status": "success",
+                "summary": summary
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "summary": f"Failed to search papers: {str(e)}"
+            }
     
     async def _search_papers(self, query: str, max_results: int) -> List[Dict]:
         """Search ArXiv for relevant papers."""
-        # TODO: Integrate with ArXiv API or use existing adapter
+        # TODO: Use ArXiv API or web search with domain=arxiv.org
+        # For now, return basic mock results
         return [
             {
-                "id": f"arxiv-{i}",
-                "title": f"Paper {i} on {query}",
-                "abstract": "Sample abstract",
-                "url": f"https://arxiv.org/abs/2024.{i}"
+                "title": f"Research on {query} - Paper {i+1}",
+                "abstract": f"This paper explores {query} and proposes novel approaches.",
+                "arxiv_id": f"2024.{i:05d}"
             }
             for i in range(max_results)
         ]
     
-    async def _analyze_paper(self, paper: Dict, focus: List[str]) -> Dict:
-        """Analyze a single paper based on focus areas."""
-        analysis = {
-            "id": paper["id"],
-            "title": paper["title"]
-        }
+    def _generate_summary(self, query: str, papers: List[Dict]) -> str:
+        """Generate human-readable summary of papers."""
+        if not papers:
+            return f"No papers found for query: '{query}'"
         
-        if "summary" in focus:
-            analysis["summary"] = paper.get("abstract", "")[:200]
+        summary = f"## Papers on: {query}\n\n"
+        summary += f"Found {len(papers)} relevant papers:\n\n"
         
-        if "methodology" in focus:
-            analysis["methodology"] = "TODO: Extract methodology"
+        for i, paper in enumerate(papers, 1):
+            summary += f"**{i}. {paper['title']}**\n"
+            summary += f"   - ArXiv ID: {paper['arxiv_id']}\n"
+            summary += f"   - Abstract: {paper['abstract'][:100]}...\n\n"
         
-        if "results" in focus:
-            analysis["results"] = "TODO: Extract key results"
+        summary += "\n_ArXiv API integration coming soon for full paper analysis!_"
         
-        if "impact" in focus:
-            analysis["impact"] = "TODO: Assess research impact"
-        
-        return analysis
-    
-    async def _synthesize_insights(self, analyses: List[Dict]) -> str:
-        """Synthesize insights from multiple papers."""
-        # TODO: Use LLM to generate synthesis
-        return f"Analyzed {len(analyses)} papers. Key trends: [TODO]"
+        return summary

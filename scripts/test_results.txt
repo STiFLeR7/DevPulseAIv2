@@ -1,0 +1,91 @@
+======================================================================
+  DevPulseAI v3 ΓÇö Multi-Domain Integration Test
+======================================================================
+
+--- Phase 1: Swarm Status ---
+  Total workers: 3
+  Swarm [research]: ['RepoResearcher'] (1 workers)
+  Swarm [analysis]: ['PaperAnalyst'] (1 workers)
+  Swarm [local]: ['ProjectExplorer'] (1 workers)
+
+--- Phase 2: Intent Detection ---
+[Intent] Matched by keyword: repo_analysis
+  Γ£à [GitHub/Repo] Expected: repo_analysis, Got: repo_analysis
+[Intent] Matched by keyword: paper_search
+  Γ£à [ArXiv/Papers] Expected: paper_search, Got: paper_search
+[Intent] Local path detected ΓåÆ project_context
+  Γ£à [Local/Files] Expected: project_context, Got: project_context
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1770880579.909420    7356 alts_credentials.cc:93] ALTS creds ignored. Not running on GCP and untrusted ALTS is not enabled.
+  Γ¥î [General/QA] Expected: general_qa, Got: project_context
+[Intent] Local path detected ΓåÆ project_context
+  Γ£à [Local/Directory] Expected: project_context, Got: project_context
+[Intent] Local path detected ΓåÆ project_context
+  Γ£à [Ambiguous/LocalOverride] Expected: project_context, Got: project_context
+
+  Intent Results: 5 passed, 1 failed
+
+--- Phase 3: Full Message Processing ---
+
+  [1/6] Testing: GitHub/Repo
+  Query: Analyze the FastAPI repository and tell me about its archite...
+[Intent] Matched by keyword: repo_analysis
+[ConversationManager] Intent: repo_analysis
+  Γ£à Response (0.0s): I couldn't find a repository URL in your message. Please provide a GitHub URL or mention a repo like 'owner/repo'....
+  ΓÅ│ Waiting 3s for rate limit cooldown...
+
+  [2/6] Testing: ArXiv/Papers
+  Query: Find recent papers on Retrieval Augmented Generation techniq...
+[Intent] Matched by keyword: paper_search
+[ConversationManager] Intent: paper_search
+  Γ£à Response (0.9s): ## Papers on: Find recent papers on Retrieval Augmented Generation techniques  Found 3 relevant papers:  **1. Research on Find recent papers on Retrie...
+  ΓÅ│ Waiting 3s for rate limit cooldown...
+
+  [3/6] Testing: Local/Files
+  Query: Read the content of README.md present at D:/DevPulseAIv2/...
+[Intent] Local path detected ΓåÆ project_context
+[ConversationManager] Intent: project_context
+  Γ£à Response (0.4s): ## ≡ƒôä README.md  **Path:** `D:\DevPulseAIv2\README.md` **Size:** 4,605 bytes  ```md  # DevPulseAI v2: Autonomous Technical Intelligence System  ![DevPu...
+  ΓÅ│ Waiting 3s for rate limit cooldown...
+
+  [4/6] Testing: General/QA
+  Query: Explain dependency injection in Python with a simple example...
+[Gemini] Rate limited (attempt 1/3), retrying in 3.0s...
+[Gemini] Rate limited (attempt 2/3), retrying in 6.0s...
+[ConversationManager] Intent: project_context
+  Γ£à Response (11.3s): ## ≡ƒÅù∩╕Å Project Overview  **Folders:** - ≡ƒôü .git/ - ≡ƒôü app/ - ≡ƒôü assets/ - ≡ƒôü docs/ - ≡ƒôü scripts/ - ≡ƒôü tests/ - ≡ƒôü ui/  **Files:** - ≡ƒôä .dockerignore (68 bytes)...
+  ΓÅ│ Waiting 3s for rate limit cooldown...
+
+  [5/6] Testing: Local/Directory
+  Query: Show me the directory tree structure of D:/DevPulseAIv2/app/...
+[Intent] Local path detected ΓåÆ project_context
+[ConversationManager] Intent: project_context
+  Γ£à Response (0.2s): ## ≡ƒôé Directory: D:\DevPulseAIv2\app  **Folders:** - ≡ƒôü adapters/ - ≡ƒôü agents/ - ≡ƒôü api/ - ≡ƒôü core/ - ≡ƒôü inference/ - ≡ƒôü memory/ - ≡ƒôü models/ - ≡ƒôü persistence/...
+  ΓÅ│ Waiting 3s for rate limit cooldown...
+
+  [6/6] Testing: Ambiguous/LocalOverride
+  Query: What is the repo structure of this project at D:/DevPulseAIv...
+[Intent] Local path detected ΓåÆ project_context
+[ConversationManager] Intent: project_context
+  Γ£à Response (0.2s): ## ≡ƒôé Directory: D:\DevPulseAIv2  **Folders:** - ≡ƒôü .git/ - ≡ƒôü app/ - ≡ƒôü assets/ - ≡ƒôü docs/ - ≡ƒôü scripts/ - ≡ƒôü tests/ - ≡ƒôü ui/  **Files:** - ≡ƒôä .dockerignore (...
+  ΓÅ│ Waiting 3s for rate limit cooldown...
+
+======================================================================
+  RESULTS SUMMARY
+======================================================================
+
+  Total Queries:  6
+  Passed:         6
+  Failed:         0
+  Total Time:     13.0s
+  Avg Time/Query: 2.2s
+
+  Γ£à GitHub/Repo               0.0s
+  Γ£à ArXiv/Papers              0.9s
+  Γ£à Local/Files               0.4s
+  Γ£à General/QA                11.3s
+  Γ£à Local/Directory           0.2s
+  Γ£à Ambiguous/LocalOverride   0.2s
+
+  ≡ƒÄë ALL TESTS PASSED!
+
