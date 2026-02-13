@@ -1,0 +1,14 @@
+--- /ping ---
+  OK: {'status': 'ok', 'version': '3.0.0'}
+
+--- POST /api/chat ---
+  Conv ID: 6087c4b1-3a5f-47af-8356-63dae01bbd5b
+Traceback (most recent call last):
+  File "D:\DevPulseAIv2\scripts\test_api.py", line 64, in <module>
+    test_all()
+  File "D:\DevPulseAIv2\scripts\test_api.py", line 22, in test_all
+    print(f"  Response: {d['response'][:120]}...")
+  File "C:\Users\stifl\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f50d' in position 15: character maps to <undefined>

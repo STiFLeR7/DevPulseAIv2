@@ -586,9 +586,29 @@ with tab_chat:
                 with fcol1:
                     if st.button("👍", key=f"up_{idx}"):
                         st.session_state.feedback[idx] = "positive"
+                        try:
+                            from app.persistence.client import db as _db
+                            _db.save_feedback(
+                                signal_id=conv_manager.conversation_id,
+                                vote_type="positive",
+                                feedback_text=msg["content"][:200]
+                            )
+                            st.toast("👍 Feedback saved!", icon="✅")
+                        except Exception:
+                            pass
                 with fcol2:
                     if st.button("👎", key=f"dn_{idx}"):
                         st.session_state.feedback[idx] = "negative"
+                        try:
+                            from app.persistence.client import db as _db
+                            _db.save_feedback(
+                                signal_id=conv_manager.conversation_id,
+                                vote_type="negative",
+                                feedback_text=msg["content"][:200]
+                            )
+                            st.toast("👎 Feedback saved!", icon="✅")
+                        except Exception:
+                            pass
     
     # Input
     user_input = st.chat_input("Ask me anything — analyze repos, find papers, read files...")
