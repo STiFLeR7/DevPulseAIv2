@@ -1,4 +1,6 @@
 import os
+import hashlib
+from datetime import datetime
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -132,6 +134,63 @@ class SupabaseManager:
             return self.get_client().table("project_context").upsert(data, on_conflict="project_name, source_type").execute()
         except Exception as e:
             print(f"FAILED TO UPSERT CONTEXT: {e}")
+
+    def insert_conversation(self, conversation_id: str, role: str, content: str, intent: str = None, metadata: dict = None):
+        """
+        Saves a single chat message (user or assistant) to the conversations table.
+        """
+        data = {
+            "conversation_id": conversation_id,
+            "role": role,
+            "content": content,
+            "intent": intent,
+            "metadata": metadata or {}
+        }
+        try:
+            return self.get_client().table("conversations").insert(data).execute()
+        except Exception as e:
+            print(f"FAILED TO SAVE CONVERSATION: {e}")
+
+    def get_conversations(self, conversation_id: str, limit: int = 50):
+        """
+        Retrieves chat history for a given conversation.
+        """
+        try:
+            result = self.get_client().table("conversations").select("*").eq(
+                "conversation_id", conversation_id
+            ).order("created_at", desc=False).limit(limit).execute()
+            return result.data if result.data else []
+        except Exception as e:
+            print(f"FAILED TO GET CONVERSATIONS: {e}")
+            return []
+
+    def query_signals(self, source: str = None, limit: int = 20):
+        """
+        Query raw_signals with optional source filter. Used by dashboard.
+        """
+        try:
+            query = self.get_client().table("raw_signals").select("*").order("created_at", desc=True).limit(limit)
+            if source:
+                query = query.eq("source", source)
+            result = query.execute()
+            return result.data if result.data else []
+        except Exception as e:
+            print(f"FAILED TO QUERY SIGNALS: {e}")
+            return []
+
+    def query_intelligence(self, agent_name: str = None, limit: int = 20):
+        """
+        Query processed_intelligence with optional agent filter.
+        """
+        try:
+            query = self.get_client().table("processed_intelligence").select("*").order("created_at", desc=True).limit(limit)
+            if agent_name:
+                query = query.eq("agent_name", agent_name)
+            result = query.execute()
+            return result.data if result.data else []
+        except Exception as e:
+            print(f"FAILED TO QUERY INTELLIGENCE: {e}")
+            return []
 
 # Global instance accessor
 db = SupabaseManager()

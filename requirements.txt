@@ -9,8 +9,15 @@ python-dotenv
 requests
 beautifulsoup4
 feedparser
-bytez
+bytez>=0.4.0
 loguru
 python-dateutil
-google-generativeai
+
+# Phase 2: Intelligence
+google-generativeai>=0.8.3
+
+# Phase 3: Interactive Layer
+streamlit
+plotly>=5.18.0
+websockets
 resend
