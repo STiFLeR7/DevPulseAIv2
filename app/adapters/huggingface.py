@@ -164,7 +164,8 @@ class HuggingFaceAdapter:
 
     async def fetch_trending_spaces(self, limit: int = 5) -> List[Signal]:
         """Fetch trending HF Spaces."""
-        url = f"{self.BASE_URL}/spaces?sort=trending&direction=-1&limit={limit}"
+        # Note: HF Spaces API doesn't support sort=trending. Use sort=likes.
+        url = f"{self.BASE_URL}/spaces?sort=likes&direction=-1&limit={limit}"
 
         signals = []
         try:
