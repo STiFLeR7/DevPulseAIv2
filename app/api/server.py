@@ -12,6 +12,9 @@ Endpoints:
   GET        /ping                 — Health check (Render cron)
   POST       /ingest               — Signal ingestion (v2 compat)
   POST       /daily-pulse          — Full ingestion cycle (v2 compat)
+  POST       /api/context          — Scan project deps
+  GET        /api/model-router/status — Model routing config + cost
+  GET        /api/alerts/status    — Alert system status
 """
 
 import asyncio
@@ -65,6 +68,10 @@ class FeedbackRequest(BaseModel):
 class IngestRequest(BaseModel):
     source: str
     run_agents: bool = True
+
+class ContextRequest(BaseModel):
+    project_path: str
+    project_name: str = None  # defaults to directory name
 
 # ── Conversation Manager Pool ──────────────────────────
 # Cache managers by conversation_id for session continuity
@@ -240,6 +247,40 @@ async def get_recommendations(conversation_id: Optional[str] = None, limit: int 
         return []
 
 
+# ── Codebase Context (SOW §5) ─────────────────────────
+
+@app.post("/api/context")
+async def scan_project_context(req: ContextRequest):
+    """
+    Scan a project directory, parse deps, build context graph.
+    Stores result to Supabase for signal relevance scoring.
+    """
+    try:
+        from app.core.codebase_context import CodebaseContextBuilder
+        builder = CodebaseContextBuilder()
+        context = builder.build(req.project_path)
+
+        # Store to Supabase
+        db.upsert_project_context(
+            project_name=req.project_name or context.project_name,
+            source_type="auto_scan",
+            content_hash=context.content_hash(),
+            context_data=context.to_dict(),
+        )
+
+        return {
+            "status": "ok",
+            "project": context.project_name,
+            "deps_count": len(context.direct_deps),
+            "frameworks": context.frameworks,
+            "tech_tags": context.tech_tags,
+            "content_hash": context.content_hash(),
+        }
+    except Exception as e:
+        logger.error(f"Context scan error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── Ingestion (v2 compat) ─────────────────────────────
 
 @app.post("/ingest")
@@ -290,10 +331,38 @@ async def _run_ingestion(source: str, run_agents: bool = True):
         logger.error(f"Unknown source: {source}")
         return
 
+    # ── Codebase-aware relevance scoring ──
+    project_context = None
+    try:
+        from app.core.codebase_context import CodebaseContextBuilder, score_signal_relevance, ProjectContext
+        stored = db.get_project_context("DevPulseAIv2")
+        if stored:
+            project_context = ProjectContext(
+                project_name=stored["project_name"],
+                direct_deps=stored.get("dependencies", {}),
+                dev_deps=stored.get("dev_dependencies", {}),
+                languages=stored.get("languages", []),
+                frameworks=stored.get("frameworks", []),
+                ecosystems=stored.get("ecosystems", []),
+                tech_tags=stored.get("tech_tags", []),
+            )
+            logger.info(f"Loaded project context: {stored['project_name']} ({len(project_context.direct_deps)} deps)")
+    except Exception as e:
+        logger.warning(f"Could not load project context: {e}")
+
     # Store & deduplicate
     new_count = 0
     for sig in signals:
         try:
+            # Enrich signal with relevance score if we have project context
+            if project_context:
+                relevance = score_signal_relevance(
+                    sig.title, sig.content,
+                    sig.metadata or {}, project_context
+                )
+                sig.metadata = sig.metadata or {}
+                sig.metadata["codebase_relevance"] = round(relevance, 3)
+
             record = db.insert_raw_signal(
                 sig.source, sig.external_id,
                 sig.model_dump(mode='json'),
@@ -307,6 +376,41 @@ async def _run_ingestion(source: str, run_agents: bool = True):
             logger.error(f"Insert signal {sig.external_id}: {e}")
 
     logger.info(f"Ingested {new_count} new signals from {source}")
+
+    # ── Knowledge Graph: extract entities from new signals ──
+    try:
+        from app.memory.graph import KnowledgeGraph
+        kg = KnowledgeGraph()
+        for sig in signals:
+            kg.add_document(
+                doc_id=f"{sig.source}:{sig.external_id}",
+                content=f"{sig.title}\n{sig.content[:500]}",
+                metadata={"source": sig.source, "signal_type": getattr(sig, 'signal_type', 'unknown')},
+            )
+    except Exception as e:
+        logger.warning(f"Knowledge graph extraction skipped: {e}")
+
+    # ── Proactive Alerts: trigger on critical findings ──
+    try:
+        from app.core.alerts import alert_dispatcher, AlertType
+        for sig in signals:
+            text = f"{sig.title} {sig.content}".lower()
+            if any(kw in text for kw in ["cve-", "vulnerability", "exploit"]):
+                await alert_dispatcher.dispatch(
+                    AlertType.CVE_DETECTED,
+                    f"Security signal detected: {sig.title[:120]}",
+                    severity="CRITICAL",
+                    metadata={"source": sig.source, "signal_id": sig.external_id},
+                )
+            elif any(kw in text for kw in ["breaking change", "deprecated", "end of life"]):
+                await alert_dispatcher.dispatch(
+                    AlertType.BREAKING_CHANGE,
+                    f"Breaking change detected: {sig.title[:120]}",
+                    severity="HIGH",
+                    metadata={"source": sig.source},
+                )
+    except Exception as e:
+        logger.warning(f"Alert dispatch skipped: {e}")
 
 
 def _store_signal_in_pinecone(signal_id: str, sig):
@@ -330,3 +434,21 @@ def _store_signal_in_pinecone(signal_id: str, sig):
         )
     except Exception as e:
         logger.warning(f"Pinecone store warning: {e}")
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Model Router + Alerts API
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@app.get("/api/model-router/status")
+async def model_router_status():
+    """Return model routing config and cost tracking."""
+    from app.core.model_router import router
+    return router.status()
+
+
+@app.get("/api/alerts/status")
+async def alerts_status():
+    """Return alert system configuration and recent history."""
+    from app.core.alerts import alert_dispatcher
+    return alert_dispatcher.status()
