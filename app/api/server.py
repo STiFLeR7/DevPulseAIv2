@@ -459,18 +459,48 @@ async def alerts_status():
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import os as _os
-_ui_dist = _os.path.join(_os.path.dirname(__file__), "..", "..", "ui", "devpulseai-ui-main", "dist")
+from pathlib import Path as _Path
 
-if _os.path.isdir(_ui_dist):
-    _assets = _os.path.join(_ui_dist, "assets")
-    if _os.path.isdir(_assets):
-        app.mount("/assets", StaticFiles(directory=_assets), name="assets")
+_server_dir = _Path(__file__).resolve().parent        # /app/app/api
+_project_root = _server_dir.parent.parent             # /app
+_ui_dist = _project_root / "ui" / "devpulseai-ui-main" / "dist"
+
+print(f"[StaticUI] Looking for built UI at: {_ui_dist}")
+print(f"[StaticUI] Exists: {_ui_dist.is_dir()}")
+
+if _ui_dist.is_dir():
+    _index_html = _ui_dist / "index.html"
+    _assets_dir = _ui_dist / "assets"
+
+    # Mount /assets for CSS/JS bundles
+    if _assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(_assets_dir)), name="assets")
+        print(f"[StaticUI] Mounted /assets from {_assets_dir}")
+
+    @app.get("/")
+    async def serve_root():
+        """Serve React SPA at root."""
+        return FileResponse(str(_index_html))
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         """Serve React SPA — all non-API routes fallback to index.html."""
-        file = _os.path.join(_ui_dist, full_path)
-        if _os.path.isfile(file):
-            return FileResponse(file)
-        return FileResponse(_os.path.join(_ui_dist, "index.html"))
+        # Try to serve the exact file (e.g. favicon.ico, manifest.json)
+        target = _ui_dist / full_path
+        if target.is_file():
+            return FileResponse(str(target))
+        # Fallback to index.html for SPA client-side routing
+        return FileResponse(str(_index_html))
 
+    print(f"[StaticUI] ✅ SPA routes registered (root + catch-all)")
+else:
+    print(f"[StaticUI] ⚠️ No built UI found — API-only mode")
+
+    @app.get("/")
+    async def api_root():
+        return {
+            "service": "DevPulseAI v3",
+            "status": "running",
+            "docs": "/docs",
+            "ui": "not built — run: cd ui/devpulseai-ui-main && npm run build",
+        }
