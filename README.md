@@ -4,20 +4,96 @@
 > **Ingest. Analyze. Deliver.**
 > Real-time technical intelligence powered by multi-agent AI, cost-aware model routing, and Model Context Protocol (MCP).
 
+[![Live UI](https://img.shields.io/badge/UI-devpulseaiv3.vercel.app-000?style=for-the-badge&logo=vercel)](https://devpulseaiv3.vercel.app)
+[![Live API](https://img.shields.io/badge/API-devpulse--ai--v2.onrender.com-46E3B7?style=for-the-badge&logo=render)](https://devpulse-ai-v2.onrender.com/docs)
+
 ---
 
-## ⚡ Overview
+## 🎯 Approach
 
-**DevPulseAI v3** is a cloud-native intelligence platform that autonomously aggregates signals from high-value developer sources, processes them through a multi-agent LLM pipeline, and delivers curated, actionable intelligence — via real-time chat, REST API, proactive alerts, or scheduled digest.
+### The Problem
 
-v3 introduces:
+Developers drown in fragmented signals — GitHub trending, ArXiv papers, HackerNews threads, Medium posts, HuggingFace models — scattered across platforms with no unified relevance layer. Critical updates (CVEs in your dependencies, breaking changes in your stack) get buried under noise.
 
-- **MCP-first architecture** — 4 MCP servers (GitHub, HuggingFace, Supabase, Pinecone) replace brittle REST scrapers
-- **Codebase-Aware Intelligence** — signals scored against your actual dependency graph
-- **Vector Knowledge Graph** — entities extracted and linked across repos, papers, and libraries
-- **Ephemeral Worker Agents** — CommunityVibe, RiskAnalyst, DependencyImpact — spawned per-task
-- **Cost-Aware Model Routing** — tiered LLM selection (fast/mid/strong) with cost tracking
-- **Proactive Alerts** — Discord, Slack, and email webhooks for CVEs and breaking changes
+### The Solution
+
+**DevPulseAI** is an autonomous intelligence pipeline that:
+
+1. **Ingests** signals from 5+ sources on autopilot (~25 signals/cycle)
+2. **Analyzes** each signal through a multi-agent LLM swarm (7 specialized workers)
+3. **Scores** relevance against _your actual codebase_ — not generic rankings
+4. **Delivers** actionable intelligence via real-time chat, REST API, or proactive alerts
+
+### Design Philosophy
+
+- **MCP-First** — Model Context Protocol servers replace brittle REST scrapers. Structured tool calls, not fragile HTML parsing.
+- **Cost-Aware by Default** — Every LLM call is routed through a tiered model selector (fast → mid → strong) with per-call cost tracking.
+- **Codebase-Aware** — Signals are scored against your `requirements.txt` / `package.json` dependency graph. A CVE in a package you use ranks higher than a trending repo you don't.
+- **Ephemeral Workers** — Agents are spawned per-task and destroyed after. No persistent agent state leaking across queries.
+
+---
+
+## 🏛 System Design
+
+### Deployment Topology
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     PRODUCTION INFRASTRUCTURE                    │
+│                                                                  │
+│  ┌───────────────────┐           ┌────────────────────────────┐  │
+│  │      VERCEL       │   HTTPS   │         RENDER             │  │
+│  │                   │ ────────▶ │                            │  │
+│  │  React + Vite     │   API +   │  FastAPI + Uvicorn         │  │
+│  │  SPA (CDN Edge)   │   WS      │  Docker (Python 3.11)     │  │
+│  │                   │           │                            │  │
+│  │  devpulseaiv3     │           │  devpulse-ai-v2            │  │
+│  │  .vercel.app      │           │  .onrender.com             │  │
+│  └───────────────────┘           └───────────┬────────────────┘  │
+│                                              │                   │
+│                          ┌───────────────────┼───────────────┐   │
+│                          │                   │               │   │
+│                          ▼                   ▼               ▼   │
+│                   ┌────────────┐     ┌────────────┐  ┌─────────┐│
+│                   │ Supabase   │     │ Pinecone   │  │ Gemini  ││
+│                   │ PostgreSQL │     │ Vector DB  │  │ LLM API ││
+│                   │ (8 tables) │     │ (1024-dim) │  │         ││
+│                   └────────────┘     └────────────┘  └─────────┘│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Tech Stack
+
+| Layer | Technology | Purpose |
+| --- | --- | --- |
+| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS | SPA with real-time WebSocket chat |
+| **Backend** | FastAPI, Uvicorn, Python 3.11 | 17 REST endpoints + WebSocket |
+| **LLM** | Google Gemini (`google-genai`) | Agent reasoning + synthesis |
+| **Vector DB** | Pinecone (`multilingual-e5-large`) | Semantic search, knowledge embeddings |
+| **Database** | Supabase (PostgreSQL + RLS) | 8 tables — signals, intelligence, conversations, feedback, KG edges |
+| **MCP Layer** | GitHub, HuggingFace, Supabase, Pinecone MCPs | Structured tool calls for data access |
+| **Hosting** | Vercel (UI) + Render (API, Docker) | Split deploy — CDN frontend, containerized backend |
+| **Alerts** | Discord (webhooks), Slack (Block Kit), Resend (email) | Proactive CVE/breaking-change notifications |
+
+### Data Flow
+
+```
+  Signal Sources          Ingestion              Agent Swarm              Delivery
+ ┌──────────┐         ┌──────────────┐       ┌────────────────┐     ┌──────────────┐
+ │ GitHub   │────┐    │              │       │  Researcher    │     │ WebSocket    │
+ │ ArXiv    │────┤    │  Dedup +     │       │  Analyst       │     │ Chat (React) │
+ │ HN       │────┼───▶│  Score +     │──────▶│  Explorer      │────▶│ REST API     │
+ │ Medium   │────┤    │  Extract     │       │  CommunityVibe │     │ Alerts       │
+ │ HF       │────┘    │  Entities    │       │  RiskAnalyst   │     │ Digest       │
+ └──────────┘         └──────┬───────┘       └────────────────┘     └──────────────┘
+                             │
+                    ┌────────┴────────┐
+                    ▼                 ▼
+              ┌──────────┐     ┌──────────┐
+              │ Pinecone │     │ Supabase │
+              │ Vectors  │     │ Postgres │
+              └──────────┘     └──────────┘
+```
 
 ---
 
@@ -68,7 +144,7 @@ v3 introduces:
 ┌──────────────────────────────────────────────────────────────────┐
 │                     DELIVERY LAYER                                │
 │                                                                  │
-│  WebSocket Chat · REST API · Streamlit Dashboard                  │
+│  React SPA (Vercel) · WebSocket · REST API (Render)               │
 │  Discord/Slack Alerts · Email Digest · 17 API Endpoints           │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -183,18 +259,18 @@ Channels: **Discord** (webhook embeds), **Slack** (Block Kit), **Email** (Resend
 ### ✅ Completed
 
 | Phase | Features |
-|---|---|
+| --- | --- |
 | **Phase 1 — Foundation** | Streamlit UI, MultiSwarm agents, Conversation pipeline, Signal/Intelligence models |
 | **Phase 2 — MCP Integration** | Supabase (8 tables), GitHub MCP, Pinecone MCP, ArXiv fixes, Persistence client |
 | **Phase 3 — Backend** | FastAPI (17 endpoints), WebSocket chat, HuggingFace adapter, Recommendation engine |
 | **Phase 4 — Intelligence** | Codebase-Aware scoring, Vector Knowledge Graph, Ephemeral workers, Model routing, Proactive alerts |
+| **Phase 5 — Deployment** | Vercel (React UI) + Render (FastAPI Docker), CI/CD auto-deploy on push to `master` |
+| **Phase 5 — Frontend** | React + Vite + Tailwind SPA, WebSocket chat, Signal feed, model cost dashboard |
 
 ### 🔲 Upcoming
 
 | Phase | Features | Priority |
-|---|---|---|
-| **Phase 5 — Deployment** | Render deployment, cron-job `/daily-pulse`, production monitoring | 🔴 High |
-| **Phase 5 — Frontend** | React/Next.js UI, WebSocket chat, Signal feed dashboard | 🔴 High |
+| --- | --- | --- |
 | **Phase 6 — Polish** | User auth + sessions, email digest, trend detection | 🟡 Medium |
 
 ---
@@ -205,10 +281,14 @@ Channels: **Discord** (webhook embeds), **Slack** (Block Kit), **Email** (Resend
 # Clone
 git clone https://github.com/STiFLeR7/DevPulseAIv2.git
 cd DevPulseAIv2
-git checkout feat/v3
 
-# Install
+# Backend
 pip install -r requirements.txt
+uvicorn app.api.server:app --reload --port 8000
+
+# Frontend (separate terminal)
+cd ui/devpulseai-ui-main
+npm install && npm run dev
 
 # Configure (.env)
 GEMINI_API_KEY=...
@@ -221,12 +301,6 @@ GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
 HUGGINGFACE_TOKEN=hf_...
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-
-# Run FastAPI backend
-uvicorn app.api.server:app --reload --port 8000
-
-# Or Streamlit UI
-streamlit run app/ui/chat.py
 
 # Run tests
 python -m scripts.test_codebase_context
@@ -308,4 +382,4 @@ DevPulseAIv2/
 ---
 
 > **Built with ❤️ by Hill Patel.**
-> *Powered by Gemini · Supabase · Pinecone · MCP*
+> _Powered by Gemini · Supabase · Pinecone · MCP_
