@@ -103,12 +103,6 @@ async def ping():
     """Ultra-lightweight health check for Render cron wake-up."""
     return {"status": "ok", "version": "3.0.0"}
 
-
-@app.get("/")
-async def root():
-    return {"message": "DevPulseAI v3 API", "docs": "/docs"}
-
-
 # ── Chat Endpoints ─────────────────────────────────────
 
 @app.post("/api/chat", response_model=ChatResponse)
