@@ -21,9 +21,13 @@ import google.generativeai as genai
 
 from app.persistence.client import SupabaseManager
 from app.core.swarm import SwarmManager, Message
+from app.core.model_router import router as model_router
 from app.agents.researcher import RepoResearcher
 from app.agents.analyst import PaperAnalyst
 from app.agents.explorer import ProjectExplorer
+from app.agents.community_vibe import CommunityVibeAgent
+from app.agents.risk_analyst import RiskAnalyst
+from app.agents.dependency_impact import DependencyImpactAnalyzer
 
 
 class Intent(Enum):
@@ -32,6 +36,9 @@ class Intent(Enum):
     PAPER_SEARCH = "paper_search"
     GENERAL_QA = "general_qa"
     PROJECT_CONTEXT = "project_context"
+    COMMUNITY_VIBE = "community_vibe"
+    RISK_SCAN = "risk_scan"
+    DEPENDENCY_IMPACT = "dependency_impact"
 
 
 # Keyword patterns for fast local intent detection (no API call needed)
@@ -50,6 +57,19 @@ INTENT_KEYWORDS = {
         "my code", "my dependencies", "my repo",
         "devpulseai", "requirements.txt", "package.json",
         ".env", ".py file", ".md file",
+    ],
+    Intent.COMMUNITY_VIBE: [
+        "community vibe", "sentiment", "what do people think",
+        "community opinion", "vibe check", "hype", "buzz",
+    ],
+    Intent.RISK_SCAN: [
+        "risk", "cve", "vulnerability", "security scan",
+        "breaking change", "deprecated", "risk scan",
+        "threats", "security", "audit",
+    ],
+    Intent.DEPENDENCY_IMPACT: [
+        "dependency impact", "impact of updating", "upgrade impact",
+        "what if i update", "updating affect", "dependency chain",
     ],
 }
 
@@ -77,6 +97,7 @@ class ConversationManager:
             raise ValueError("GEMINI_API_KEY is not set. Please check your .env file.")
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.model_router = model_router
         
         self.db = SupabaseManager()
         self.swarm = SwarmManager()
@@ -90,6 +111,12 @@ class ConversationManager:
         self.swarm.register_worker(RepoResearcher(), swarm_name="research")
         self.swarm.register_worker(PaperAnalyst(), swarm_name="analysis")
         self.swarm.register_worker(ProjectExplorer(), swarm_name="local")
+
+        # Ephemeral workers (SOW §3)
+        self.swarm.create_swarm("intelligence", "Risk & sentiment analysis")
+        self.swarm.register_worker(CommunityVibeAgent(), swarm_name="intelligence")
+        self.swarm.register_worker(RiskAnalyst(), swarm_name="intelligence")
+        self.swarm.register_worker(DependencyImpactAnalyzer(), swarm_name="intelligence")
         
         self.conversation_id = str(uuid.uuid4())
         self._last_api_call = 0.0
@@ -106,11 +133,12 @@ class ConversationManager:
         except Exception:
             pass  # Pinecone is optional
 
-    def _gemini_call_with_retry(self, prompt: str) -> str:
+    def _gemini_call_with_retry(self, prompt: str, tier: str = "mid") -> str:
         """
         Call Gemini with exponential backoff on 429 rate limits.
-        Delays: 3s -> 6s -> 12s between retries.
+        Uses ModelRouter tier for cost tracking.
         """
+        model_name = self.model_router.get_model(tier)
         for attempt in range(self.MAX_RETRIES):
             try:
                 # Enforce minimum gap between API calls
@@ -121,6 +149,12 @@ class ConversationManager:
                 
                 response = self.model.generate_content(prompt)
                 self._last_api_call = time.time()
+                
+                # Log cost (estimate tokens from char count)
+                est_input = len(prompt) // 4
+                est_output = len(response.text) // 4 if response.text else 0
+                self.model_router.log_usage(model_name, est_input, est_output, f"tier={tier}")
+                
                 return response.text
             except Exception as e:
                 error_str = str(e)
@@ -159,16 +193,22 @@ class ConversationManager:
                 "- repo_analysis (about GitHub repos, code analysis)\n"
                 "- paper_search (about research papers, academic)\n"
                 "- project_context (about local files, project setup)\n"
+                "- community_vibe (community sentiment, opinions, hype)\n"
+                "- risk_scan (security, CVEs, vulnerabilities, risks)\n"
+                "- dependency_impact (impact of updating packages)\n"
                 "- general_qa (general questions)\n\n"
                 f"Message: {user_message}\n\n"
                 "Reply with ONLY the category name, nothing else."
             )
-            result = self._gemini_call_with_retry(prompt).strip().lower()
+            result = self._gemini_call_with_retry(prompt, tier="fast").strip().lower()
             
             intent_map = {
                 "repo_analysis": Intent.REPO_ANALYSIS,
                 "paper_search": Intent.PAPER_SEARCH,
                 "project_context": Intent.PROJECT_CONTEXT,
+                "community_vibe": Intent.COMMUNITY_VIBE,
+                "risk_scan": Intent.RISK_SCAN,
+                "dependency_impact": Intent.DEPENDENCY_IMPACT,
                 "general_qa": Intent.GENERAL_QA,
             }
             return intent_map.get(result, Intent.GENERAL_QA)
@@ -216,6 +256,18 @@ class ConversationManager:
             elif intent == Intent.PROJECT_CONTEXT:
                 result = await self.swarm.dispatch("ProjectExplorer", context)
                 response = result.get("summary", "Could not read project context.")
+            
+            elif intent == Intent.COMMUNITY_VIBE:
+                result = await self.swarm.dispatch("CommunityVibeAgent", context)
+                response = result.get("summary", "No community signals found.")
+            
+            elif intent == Intent.RISK_SCAN:
+                result = await self.swarm.dispatch("RiskAnalyst", context)
+                response = result.get("summary", "No risks detected.")
+            
+            elif intent == Intent.DEPENDENCY_IMPACT:
+                result = await self.swarm.dispatch("DependencyImpactAnalyzer", context)
+                response = result.get("summary", "Could not analyze dependency impact.")
             
             elif intent == Intent.GENERAL_QA:
                 try:

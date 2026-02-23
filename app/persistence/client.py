@@ -192,5 +192,45 @@ class SupabaseManager:
             print(f"FAILED TO QUERY INTELLIGENCE: {e}")
             return []
 
+    def upsert_project_context(self, project_name: str, source_type: str,
+                                content_hash: str, context_data: dict):
+        """
+        Upsert a project context (parsed dependency graph) to Supabase.
+        Used by Codebase-Aware Intelligence (SOW §5).
+        """
+        data = {
+            "project_name": project_name,
+            "source_type": source_type,
+            "content_hash": content_hash,
+            "dependencies": context_data.get("direct_deps", {}),
+            "dev_dependencies": context_data.get("dev_deps", {}),
+            "languages": context_data.get("languages", []),
+            "frameworks": context_data.get("frameworks", []),
+            "ecosystems": context_data.get("ecosystems", []),
+            "tech_tags": context_data.get("tech_tags", []),
+        }
+        try:
+            return self.get_client().table("project_context").upsert(
+                data, on_conflict="project_name, source_type"
+            ).execute()
+        except Exception as e:
+            print(f"FAILED TO UPSERT PROJECT CONTEXT: {e}")
+
+    def get_project_context(self, project_name: str) -> dict:
+        """
+        Get the stored project context for relevance scoring.
+        Returns None if not found.
+        """
+        try:
+            result = self.get_client().table("project_context").select("*").eq(
+                "project_name", project_name
+            ).execute()
+            if result.data:
+                return result.data[0]
+        except Exception as e:
+            print(f"FAILED TO GET PROJECT CONTEXT: {e}")
+        return None
+
+
 # Global instance accessor
 db = SupabaseManager()
