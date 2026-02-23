@@ -1,7 +1,7 @@
 
 services:
   - type: web
-    name: devpulse-ai-v2
+    name: devpulse-ai-v3
     env: docker
     plan: free
     region: oregon 

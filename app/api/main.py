@@ -40,18 +40,32 @@ agents = {
 trend_agent = TrendDetectionAgent(inference_client)
 mailer = MailerService()
 
-# Serve UI
-# Serve UI
-# Serve React UI
-app.mount("/assets", StaticFiles(directory="ui/dist/assets", html=True), name="assets")
+# Serve React UI (conditional — skip if build dir doesn't exist)
+import os
+
+_ui_dist = os.path.join(os.path.dirname(__file__), "..", "..", "ui", "devpulseai-ui-main", "dist")
+_ui_dist_legacy = os.path.join(os.path.dirname(__file__), "..", "..", "ui", "dist")
+
+_static_dir = None
+if os.path.isdir(_ui_dist):
+    _static_dir = _ui_dist
+elif os.path.isdir(_ui_dist_legacy):
+    _static_dir = _ui_dist_legacy
+
+if _static_dir and os.path.isdir(os.path.join(_static_dir, "assets")):
+    app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets"), html=True), name="assets")
 
 @app.get("/ui")
 async def read_ui():
-    return FileResponse('ui/dist/index.html')
+    if _static_dir:
+        return FileResponse(os.path.join(_static_dir, "index.html"))
+    return {"message": "UI not built. Run: cd ui/devpulseai-ui-main && npm run build"}
 
 @app.get("/")
 async def read_root():
-    return FileResponse('ui/dist/index.html')
+    if _static_dir:
+        return FileResponse(os.path.join(_static_dir, "index.html"))
+    return {"message": "DevPulseAI v2 API — UI not built", "docs": "/docs"}
 
 @app.get("/ping")
 async def ping():
