@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #0a0e17;
+  --color-bg-secondary: #0d1321;
+  --color-bg-card: #131b2e;
+  --color-bg-hover: #1a2744;
+
+  --color-accent-primary: #63ffd1;
+  --color-accent-secondary: #00b4d8;
+  --color-accent-tertiary: #a78bfa;
+  --color-accent-warning: #ffbe32;
+  --color-accent-danger: #ff6b6b;
+
+  --color-text-primary: #e0e6ed;
+  --color-text-secondary: #8899aa;
+  --color-text-muted: #4a5568;
+
+  --color-border-subtle: rgba(99, 255, 209, 0.08);
+  --color-border-accent: rgba(99, 255, 209, 0.25);
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary font-sans antialiased;
+  }
+
+  * {
+    @apply border-border-subtle;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-bg-card/60 backdrop-blur-xl border border-border-subtle rounded-xl transition-all duration-300;
+  }
+  
+  .glass-card:hover {
+    @apply border-border-accent shadow-[0_8px_24px_rgba(99,255,209,0.06)];
+  }
+
+  .btn-primary {
+    @apply bg-accent-primary text-bg-primary font-semibold px-6 py-2 rounded-lg hover:opacity-90 transition-all active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply border border-accent-primary/20 text-accent-primary px-6 py-2 rounded-lg hover:bg-accent-primary/10 transition-all active:scale-95;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-primary to-accent-secondary;
+}
