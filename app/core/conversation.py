@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import google.generativeai as genai
+from google import genai
 
 from app.persistence.client import SupabaseManager
 from app.core.swarm import SwarmManager, Message
@@ -95,8 +95,8 @@ class ConversationManager:
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY is not set. Please check your .env file.")
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.client = genai.Client(api_key=self.api_key)
+        self.model_name = "gemini-2.0-flash"
         self.model_router = model_router
         
         self.db = SupabaseManager()
@@ -147,7 +147,9 @@ class ConversationManager:
                 if elapsed < 1.0:
                     time.sleep(1.0 - elapsed)
                 
-                response = self.model.generate_content(prompt)
+                response = self.client.models.generate_content(
+                    model=self.model_name, contents=prompt
+                )
                 self._last_api_call = time.time()
                 
                 # Log cost (estimate tokens from char count)
