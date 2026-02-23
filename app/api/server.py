@@ -452,3 +452,25 @@ async def alerts_status():
     """Return alert system configuration and recent history."""
     from app.core.alerts import alert_dispatcher
     return alert_dispatcher.status()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Static UI Serving (production — built React app)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import os as _os
+_ui_dist = _os.path.join(_os.path.dirname(__file__), "..", "..", "ui", "devpulseai-ui-main", "dist")
+
+if _os.path.isdir(_ui_dist):
+    _assets = _os.path.join(_ui_dist, "assets")
+    if _os.path.isdir(_assets):
+        app.mount("/assets", StaticFiles(directory=_assets), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """Serve React SPA — all non-API routes fallback to index.html."""
+        file = _os.path.join(_ui_dist, full_path)
+        if _os.path.isfile(file):
+            return FileResponse(file)
+        return FileResponse(_os.path.join(_ui_dist, "index.html"))
+
